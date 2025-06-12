@@ -1033,8 +1033,12 @@ static int searchDatabase_(unsigned char query[], int queryLength,
                 overflowed[i] = currDbSeqsPos[i] != 0 && unpackedMinEF[i] <= LOWER_BOUND / 2;
                 if (overflowMethod == OPAL_OVERFLOW_BUCKETS && overflowed[i]) {
                     // In buckets method, we stop calculation when overflow is detected.
-                    return OPAL_ERR_OVERFLOW;
+                    overflowOccured = true;
+                    break;
                 }
+            }
+            if (overflowOccured && overflowMethod == OPAL_OVERFLOW_BUCKETS) {
+                break;
             }
         } else {
             // There is overflow if minE == LOWER_BOUND or minF == LOWER_BOUND or maxH == UPPER_BOUND
@@ -1046,8 +1050,12 @@ static int searchDatabase_(unsigned char query[], int queryLength,
                                                           || unpackedMaxH[i] == UPPER_BOUND);
                 if (overflowMethod == OPAL_OVERFLOW_BUCKETS && overflowed[i]) {
                     // In buckets method, we stop calculation when overflow is detected.
-                    return OPAL_ERR_OVERFLOW;
+                    overflowOccured = true;
+                    break;
                 }
+            }
+            if (overflowOccured && overflowMethod == OPAL_OVERFLOW_BUCKETS) {
+                break;
             }
         }
         for (int i = 0; i < SIMD::numSeqs; i++) {
