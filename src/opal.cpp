@@ -1612,8 +1612,8 @@ static void findAlignment(
 
     // Construct alignment.
     // I reserve max size possibly needed for alignment.
-    unsigned char* alignment = (unsigned char*) malloc(
-        sizeof(unsigned char) * (result->endLocationQuery + result->endLocationTarget));
+    size_t alloc_length = result->endLocationQuery + result->endLocationTarget + 2;
+    unsigned char* alignment = (unsigned char*) calloc(alloc_length, sizeof(unsigned char));
     int alignmentLength = 0;
     int rIdx = result->endLocationQuery;
     int cIdx = result->endLocationTarget;
@@ -1629,21 +1629,26 @@ static void findAlignment(
             } else if ((cell.H == cell.F) && (rIdx > 0)) {
                 field = Cell::Field::F;
             } else {
-                alignment[alignmentLength++] = (query[rIdx] == target[cIdx] ? OPAL_ALIGN_MATCH
-                                                : OPAL_ALIGN_MISMATCH);
-                cIdx--; rIdx--;
+                alignment[alignmentLength] = (query[rIdx] == target[cIdx] ? OPAL_ALIGN_MATCH : OPAL_ALIGN_MISMATCH);
+                alignmentLength++;
+                cIdx--; 
+                rIdx--;
             }
             break;
         case Cell::Field::E:
             if (cIdx > 0)
                 field = (cell.E == matrix[cIdx - 1][rIdx].H - gapOpen) ? Cell::Field::H : Cell::Field::E;
-            alignment[alignmentLength++] = OPAL_ALIGN_INS;
+            assert(alignmentLength < alloc_length);
+            alignment[alignmentLength] = OPAL_ALIGN_INS;
+            alignmentLength++;
             cIdx--;
             break;
         case Cell::Field::F:
             if (rIdx > 0)
                 field = (cell.F == matrix[cIdx][rIdx - 1].H - gapOpen) ? Cell::Field::H : Cell::Field::F;
-            alignment[alignmentLength++] = OPAL_ALIGN_DEL;
+            assert(alignmentLength < alloc_length);
+            alignment[alignmentLength] = OPAL_ALIGN_DEL;
+            alignmentLength++;
             rIdx--;
             break;
         }
@@ -1651,10 +1656,12 @@ static void findAlignment(
     // I stop when matrix border is reached, so I have to add indels at start of alignment
     // manually (they do not have entry in operations). Only one of these two loops will trigger.
     while (rIdx >= 0) {
+        assert(alignmentLength < alloc_length);
         alignment[alignmentLength] = OPAL_ALIGN_DEL;
         alignmentLength++; rIdx--;
     }
     while (cIdx >= 0) {
+        assert(alignmentLength < alloc_length);
         alignment[alignmentLength] = OPAL_ALIGN_INS;
         alignmentLength++; cIdx--;
     }
